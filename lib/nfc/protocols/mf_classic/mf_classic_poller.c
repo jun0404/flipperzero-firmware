@@ -594,12 +594,16 @@ NfcCommand mf_classic_poller_handler_analyze_backdoor(MfClassicPoller* instance)
     } else if(error == MfClassicErrorNone) {
         FURI_LOG_I(TAG, "Backdoor identified: v%d", backdoor_version);
         dict_attack_ctx->backdoor = mf_classic_backdoor_keys[next_key_index].type;
+        // Notify UI about backdoor discovery before bulk read
+        mf_classic_poller_handle_data_update(instance);
         instance->state = MfClassicPollerStateBackdoorReadSector;
     } else if(
         (error == MfClassicErrorAuth) &&
         (next_key_index == (mf_classic_backdoor_keys_count - 1))) {
-        // We've tried all backdoor keys, this is a unique key and an important research finding
-        furi_crash("New backdoor: please report!");
+        // Unknown backdoor variant – continue without crashing
+        FURI_LOG_W(TAG, "Unknown backdoor encountered, falling back to dict attack");
+        dict_attack_ctx->backdoor = MfClassicBackdoorNone;
+        instance->state = MfClassicPollerStateRequestKey;
     }
 
     return command;

@@ -110,6 +110,7 @@ typedef struct {
     uint16_t nested_target_key;
     uint16_t msb_count;
     bool enhanced_dict;
+    bool backdoor_notified;
 } NfcMfClassicDictAttackContext;
 
 typedef struct {

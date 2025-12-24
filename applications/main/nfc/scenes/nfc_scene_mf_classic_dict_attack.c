@@ -230,6 +230,7 @@ static void nfc_scene_mf_classic_dict_attack_prepare_view(NfcApp* instance) {
 void nfc_scene_mf_classic_dict_attack_on_enter(void* context) {
     NfcApp* instance = context;
 
+    instance->nfc_dict_context.backdoor_notified = false;
     scene_manager_set_scene_state(
         instance->scene_manager, NfcSceneMfClassicDictAttack, DictAttackStateCUIDDictInProgress);
     nfc_scene_mf_classic_dict_attack_prepare_view(instance);
@@ -299,6 +300,13 @@ bool nfc_scene_mf_classic_dict_attack_on_event(void* context, SceneManagerEvent 
             dict_attack_set_card_state(instance->dict_attack, false);
             consumed = true;
         } else if(event.event == NfcCustomEventDictAttackDataUpdate) {
+            bool backdoor_found =
+                (instance->nfc_dict_context.backdoor != MfClassicBackdoorUnknown) &&
+                (instance->nfc_dict_context.backdoor != MfClassicBackdoorNone);
+            if(backdoor_found && !(instance->nfc_dict_context.backdoor_notified)) {
+                notification_message(instance->notifications, &sequence_success);
+                instance->nfc_dict_context.backdoor_notified = true;
+            }
             nfc_scene_mf_classic_dict_attack_update_view(instance);
         } else if(event.event == NfcCustomEventDictAttackSkip) {
             const MfClassicData* mfc_data = nfc_poller_get_data(instance->poller);
@@ -382,6 +390,7 @@ void nfc_scene_mf_classic_dict_attack_on_exit(void* context) {
     instance->nfc_dict_context.nested_target_key = 0;
     instance->nfc_dict_context.msb_count = 0;
     instance->nfc_dict_context.enhanced_dict = false;
+    instance->nfc_dict_context.backdoor_notified = false;
 
     // Clean up temporary files used for nested dictionary attack
     if(keys_dict_check_presence(NFC_APP_MF_CLASSIC_DICT_USER_NESTED_PATH)) {
